@@ -40,7 +40,7 @@ void freeArray(Array *a) {
 
 int eliminarArray(Array *a, char *element){
   int i;
-  for (i = 0; i <= a->size; i++){
+  for (i = 0; i < a->size; i++){
     if(strcmp(element,a->array[i])== 0){
       a->size--;
       char **temp = (char **)malloc(a->size * sizeof(*a->array));
@@ -77,9 +77,10 @@ int main(){
       insertArray(&arr, n);
     }
     printArray(&arr);
-    sprintf(n,"%d",1);
-    eliminarArray(&arr, n);
+    sprintf(n,"%d",100);
+    int e = eliminarArray(&arr, n);
     printArray(&arr);
+    printf("%d", e);
     //printf("%s \n", arr.array[0]);
     //freeArray(&arr);
 }
