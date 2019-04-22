@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // BROKER_HOST: nombre de la máquina donde ejecuta el broker.
 // BROKER_PORT: número de puerto TCP por el que está escuchando.
@@ -20,16 +21,33 @@ struct Queue {
 	bool blocking;
 };
 
+typedef struct {
+  char **array;
+  int size;
+} Array;
+
+Array a;
+initArray(a);
+
 /* 0 si la operación se realizó satisfactoriamente y
  * un valor negativo en caso contrario
  * cola: nombre de la cola
  */
 int createMQ(const char *cola) {
-	printf("Creando cola");
-	struct Queue *q;
+	printf("Creando cola %s\n", cola);
+	printf("%d\n", a.size);
+	insertArray(&a, cola);
+	for (int i = 0; i < a.size; ++i){
+		 if(strcmp(cola, a.array[i]) == 0){
+			 printf("Elemento existe\n");
+			 return -1;
+		 }
+	 }
+	printf("Elemento no existe\n");
+	/*struct Queue *q;
 	q->first = NULL;
 	q->last = NULL;
-	q->size = 0;
+	q->size = 0;*/
 	return 0;
 }
 
