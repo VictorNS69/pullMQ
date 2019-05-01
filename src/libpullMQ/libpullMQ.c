@@ -1,6 +1,7 @@
 #include "comun.h"
 #include "pullMQ.h"
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,55 +9,44 @@
 // BROKER_HOST: nombre de la máquina donde ejecuta el broker.
 // BROKER_PORT: número de puerto TCP por el que está escuchando.
 
-struct Node {
-	char *msg;
-	struct Node *next;
-};
-
-struct Queue {
-	char *queues;
-	unsigned int size;
-	struct Node *first;
-	struct Node *last;
-	bool blocking;
-};
-
-typedef struct {
-  char **array;
-  int size;
-} Array;
-
+bool initialized = false;
 Array a;
-initArray(a);
 
 /* 0 si la operación se realizó satisfactoriamente y
  * un valor negativo en caso contrario
  * cola: nombre de la cola
  */
 int createMQ(const char *cola) {
-	printf("Creando cola %s\n", cola);
-	printf("%d\n", a.size);
-	insertArray(&a, cola);
-	for (int i = 0; i < a.size; ++i){
-		 if(strcmp(cola, a.array[i]) == 0){
-			 printf("Elemento existe\n");
-			 return -1;
-		 }
-	 }
-	printf("Elemento no existe\n");
-	/*struct Queue *q;
-	q->first = NULL;
-	q->last = NULL;
-	q->size = 0;*/
-	return 0;
-}
+	if(initialized == false){
+			a.list = (FIFO *)malloc(0);
+			a.size = 0;
+			initialized = true;
+		}
+		// Comprobar que no haya colas con ese nombre
+		for(int i = 0; i < a.size; i++){
+			if(strcmp(a.list[i].name, cola) == 0){
+				return -1;
+			}
+		}
+		// Reservar espacio para el nuevo elemento
+		a.size++;
+		a.list = (FIFO *)realloc(a.list, a.size * sizeof(a.list));
+		if (a.list == NULL){
+			return -1;
+		}
+		// Crear la cola
+		FIFO queue;
+		// Meter la cola en el array
+		a.list[a.size - 1] = queue;
+		return 0;
+	}
 
-/* 0 si la operación se realizó satisfactoriamente y
- * un valor negativo en caso contrario
- * cola: nombre de la cola
- */
-int destroyMQ(const char *cola){
-	return 0;
+	/* 0 si la operación se realizó satisfactoriamente y
+	* un valor negativo en caso contrario
+	* cola: nombre de la cola
+	*/
+	int destroyMQ(const char *cola){
+		return 0;
 }
 
 /* 0 si la operación se realizó satisfactoriamente y
@@ -78,4 +68,8 @@ int put(const char *cola, const void *mensaje, size_t tam){
  */
 int get(const char *cola, void **mensaje, size_t *tam, bool blocking){
 	return 0;
+}
+
+int main(){
+	printf("libpullMQ\n");
 }

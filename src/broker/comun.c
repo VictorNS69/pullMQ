@@ -7,22 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-struct Node{
-    char *msg;
-    struct Node *next;
-};
-
-typedef struct{
-    struct Node *start;
-    struct Node *end;
-    unsigned int size;
-} FIFO;
-
-typedef struct {
-  char **string;
-  int size;
-} Array;
+#include <stdbool.h>
 
 ///////////////////////// FIFO /////////////////////////
 /** Prints the list of elements
@@ -42,7 +27,9 @@ void printFifo(FIFO *fifo){
 /** Initializes the FIFO
  *  fifo: FIFO list to initialize
  */
-void initFifo(FIFO *fifo){
+void initFifo(FIFO *fifo, const char *name){
+    fifo->name = (char *)malloc(strlen(name));
+    strcpy(fifo->name, name);
     fifo->start = NULL;
     fifo->end = NULL;
     fifo->size = 0;
@@ -84,7 +71,7 @@ char *pop(FIFO *list){
  *  array: the array of Strings
  */
 void initArray(Array *array) {
-  array->string = malloc(0);
+  array->list = malloc(0);
   array->size = 0;
 }
 
@@ -93,23 +80,42 @@ void initArray(Array *array) {
  *  element: the new element
  *  returns int: 0 if success, -1 if not
  */
-int insertArray(Array *array, char *element) {
-    array->size++;
-    array->string = (char **)realloc(array->string, array->size * sizeof(*array->string));
-    array->string[array->size - 1] = (char *)malloc(strlen(element) * sizeof(*array->string[array->size - 1]));
-    if (!array->string[array->size - 1]){
-        return -1;
+char* insertArray(Array *array, FIFO fifo) {
+    printf("INSERTAR\n");
+    printf("Tamaño: %d\n", array->size);
+    for(int i = 0; i < array->size; i++){
+      printf("i %d\n", i);
+      //printf("nombre: %s\n", array[i].list->name);
+      /*if (array[i].list == NULL){
+        //printf("HUECO NULL. i=%d\n", i );
+        array[i].list->name = fifo.name;
+        array[i].list->start = fifo.start;
+        array[i].list->end = fifo.end;
+        return array[i].list->name;
+      }
+      else */
+      //printf("%s",array[i].list->name);
+      if(strcmp(array[i].list->name, fifo.name) == 0){
+        //printf("EXISTE i=%d\n", i );
+        return "EXSIST";
+      }
     }
-    strcpy(array->string[array->size - 1], element);
-    return 0;
+    printf("NO HUECO NULL Y NO EXISTE\n");
+    array->size++;
+    printf("PASO\n");
+    array->list = realloc(array->list, array->size * sizeof(*array->list));
+    array[array->size -1].list->name = fifo.name;
+    array[array->size -1].list->start = fifo.start;
+    array[array->size -1].list->end = fifo.end;
+    return array[array->size -1].list->name;
 }
 
 /** Destroys an array
  *  array: the array
  */
 void freeArray(Array *array) {
-  free(array->string);
-  array->string = NULL;
+  free(array->list);
+  array->list = NULL;
 }
 
 /** Delete an element of the array
@@ -117,43 +123,61 @@ void freeArray(Array *array) {
  *  element: element to remove
  *  returns int: 0 if success, -1 if not
  */
-int deleteArray(Array *array, char *element){
+int deleteArray(Array *array, FIFO fifo){
+  printf("NOMBRE para borrar: %s\n", fifo.name);
+  //printArray(&array);
   int i;
+  bool find = false;
+  Array newArray;
+  initArray(&newArray);
   for (i = 0; i < array->size; i++){
-    if(strcmp(element,array->string[i])== 0){
-      array->size--;
-      char **temp = (char **)malloc(array->size * sizeof(*array->string));
+    printf("i %d\n", i);
+    if(strcmp(fifo.name,array[i].list->name) == 0){
+      printf("Encontrado elemento\n");
+      find = true;
+      continue;
+    }
+    FIFO newFifo = *array[i].list;
+    insertArray(&newArray, newFifo);
+    //printArray(&newArray);
+    printf("insertado\n");
+    /*
+    if(strcmp(fifo.name,array[i].list->name)== 0){
+      FIFO *temp = malloc(array->size * sizeof(*array->list));
       memmove(
         temp,
-        array->string,
-        (i + 1) * sizeof(*array->string));
+        array->list,
+        (i + 1) * sizeof(*array->list));
       memmove(
         temp + i,
-        array->string + i + 1,
-        (array->size - i) * sizeof(*array->string));
-      free(array->string[i]);
-      array->string = temp;
+        array->list + i + 1,
+        (array->size - i) * sizeof(*array->list));
+      free(array[i].list);
+      array->list = temp;
       return 0;
-    }
+    }*/
   }
-  return -1;
+  array->list = newArray.list;
+  array->size = newArray.size;
+  return find ? 0: -1;
 }
 
 /** Prints the array
  *  list: array
  */
 void printArray(Array *array){
-    printf("Tamaño: %d \n", array->size);
+    //printf("Tamaño: %d \n", array->size);
     for (int i = 0; i < array->size; ++i)
-        printf("%s ", array->string[i]);
+        printf("%s ", array[i].list->name);
     printf("\n");
 }
 ///////////////////////// DYNA /////////////////////////
-
+/*
 void main(){
+    printf("comun.o\n");
     printf("////////// FIFO //////////\n");
     FIFO list;
-    initFifo(&list);
+    initFifo(&list, "fifo");
     printf("+\tInsertado %s\n", push(&list, "elem1"));
     printf("+\tInsertado %s\n", push(&list, "elem2"));
     printf("Lista: ");
@@ -164,7 +188,32 @@ void main(){
     printf("Lista: ");
     printFifo(&list);
     printf("-\tEliminado %s\n", pop(&list));
+    printf("+\tInsertado %s\n", push(&list, "elem5"));
     printf("Lista: ");
     printFifo(&list);
     printf("////////// ARRAY //////////\n");
-}
+    Array array;
+    initArray(&array);
+    FIFO elem1;
+    initFifo(&elem1, "elem1");
+    printf("+\tInsertado %s\n", insertArray(&array, elem1));
+    FIFO elem2;
+    initFifo(&elem2, "elem2");
+    printf("+\tInsertado %s\n", insertArray(&array, elem2));
+    FIFO elem3;
+    initFifo(&elem3, "elem3");
+    printf("+\tInsertado %s\n", insertArray(&array, elem3));
+    printf("Array: ");
+    printArray(&array);
+    printf("-\tEliminado %d\n", deleteArray(&array, elem2));
+    /*printf("Array: ");
+    printArray(&array);
+    printf("+\tInsertado %s\n", insertArray(&array, elem2));
+    printf("Array: ");
+    printArray(&array);
+    //printf("-\tEliminado %d\n", deleteArray(&array, elem2)); // -1 porque ya ha sido borrado
+    //printf("Array: ");
+    //printArray(&array);
+    //printf("Valor en 1: %s\n", array.list[1]);
+    */
+//}
