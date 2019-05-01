@@ -17,6 +17,7 @@ Se van a distinguir tres fases en el desarrollo de la práctica:
 - Sistema que incorpora también operaciones de lectura bloqueantes, que otorga un máximo de **3 puntos adicionales**.
 - Una fase final que plantea analizar e implementar aspectos de tolerancia a fallos en el sistema, que puede proporcionar el **1 punto** restante. Nótese que en las dos fases previas no se tendrá en cuenta la posibilidad de que alguno de los procesos involucrados en una comunicación se caiga, siendo en esta fase cuando se afronta este tipo de problemas.
 
+Para más información consultar el [enunciado de la práctica](/doc/enunciado.md).
 ## Autor
 [Víctor Nieves Sánchez](https://twitter.com/VictorNS69)
 
