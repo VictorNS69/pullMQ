@@ -1,7 +1,6 @@
 #include "comun.h"
 #include "pullMQ.h"
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,35 +17,31 @@ Array a;
  */
 int createMQ(const char *cola) {
 	if(initialized == false){
-			a.list = (FIFO *)malloc(0);
-			a.size = 0;
+			initArray(&a);
 			initialized = true;
-		}
-		// Comprobar que no haya colas con ese nombre
-		for(int i = 0; i < a.size; i++){
-			if(strcmp(a.list[i].name, cola) == 0){
-				return -1;
-			}
-		}
-		// Reservar espacio para el nuevo elemento
-		a.size++;
-		a.list = (FIFO *)realloc(a.list, a.size * sizeof(a.list));
-		if (a.list == NULL){
-			return -1;
-		}
-		// Crear la cola
-		FIFO queue;
-		// Meter la cola en el array
-		a.list[a.size - 1] = queue;
-		return 0;
+	}
+	// La cola existe
+	int index = indexOf(&a, cola);
+	if (index != -1){
+		return -1;
+	}
+	// insertar la nueva cola
+	FIFO fifo;
+	initFifo(&fifo, cola);
+	insertArray(&a, fifo);
+	return 0;
 	}
 
-	/* 0 si la operación se realizó satisfactoriamente y
-	* un valor negativo en caso contrario
-	* cola: nombre de la cola
-	*/
-	int destroyMQ(const char *cola){
-		return 0;
+/* 0 si la operación se realizó satisfactoriamente y
+* un valor negativo en caso contrario
+* cola: nombre de la cola
+*/
+int destroyMQ(const char *cola){
+	int index = indexOf(&a, cola);
+	if (index == -1){
+		return -1;
+	}
+	return deleteArray(&a, a.list[index]);
 }
 
 /* 0 si la operación se realizó satisfactoriamente y
@@ -56,6 +51,12 @@ int createMQ(const char *cola) {
  * tam: tamaño del mensaje
  */
 int put(const char *cola, const void *mensaje, size_t tam){
+	int index = indexOf(&a, cola);
+	if (index == -1){
+		return -1;
+	}
+	FIFO fifo = a.list[index];
+	push(&fifo, (char*) mensaje);
 	return 0;
 }
 
@@ -67,9 +68,20 @@ int put(const char *cola, const void *mensaje, size_t tam){
  * blocking: indica si la cola es boqueante
  */
 int get(const char *cola, void **mensaje, size_t *tam, bool blocking){
-	return 0;
-}
-
-int main(){
-	printf("libpullMQ\n");
+	int index = indexOf(&a, cola);
+	printf("COLA: %s\n", cola);
+	printf("INDEX: %d,\n", index);
+	if (index == -1){
+		return -1;
+	}
+	FIFO fifo = a.list[index];
+	printf("fifo name: %s\n", fifo.name);
+	printf("fifo start: %s\n", fifo.start);
+	printf("fifo end: %s\n", fifo.end);
+	printf("LISTA: \n");
+	printFifo(&fifo);
+	int pope = pop(&fifo,  (char **) mensaje);
+	printf("Valor de pop: %d\n", pope);
+	a.list[index] = fifo;
+	return pope;
 }

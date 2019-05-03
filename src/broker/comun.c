@@ -56,13 +56,32 @@ char *push(FIFO *list, char *msg){
 
 /** Remove the first element of the FIFO
  *  list: FIFO list
- *  returns char*: the element removed from the list
+ *  returns int: 0 if success, -1 if not
  */
-char *pop(FIFO *list){
-    char *msg = list->start->msg;
+int pop(FIFO *list, char **msg){
+    if (list->end == NULL){
+        return -1;
+    }
+    struct Node *start = list->start;
+    *msg = start->msg;
+
+    struct Node **second;
+    struct Node *current = list->end;
+
+    do {
+        if(current->next == start) {
+            *second = current;
+            return 0;
+        }
+    } while((current = current->next) != NULL);
+    second->next = NULL;
+    list->start = second;
+
+    free(start);
+    /*char *msg = list->start->msg;
     list->start = list->start->next != NULL ? list->start->next : NULL;
     list->size--;
-    return msg;
+    return msg;*/
 }
 ///////////////////////// FIFO /////////////////////////
 
@@ -82,10 +101,7 @@ void initArray(Array *array) {
  *  returns the name of the inserted fifo
  */
 char* insertArray(Array *array, FIFO fifo) {
-    printf("INSERTAR\n");
-    printf("Tamaño: %d\n", array->size);
     array->size++;
-    printf("tamaño nuevo %d\n", array->size);
     array->list = realloc(array->list, array->size * sizeof(*array->list));
     initFifo(&fifo, fifo.name);
     array->list[array->size -1] = fifo;
@@ -106,7 +122,6 @@ void freeArray(Array *array) {
  *  returns int: 0 if success, -1 if not
  */
 int deleteArray(Array *array, FIFO fifo){
-  printf("NOMBRE para borrar: %s\n", fifo.name);
   int index = indexOf(array, fifo.name);
   if (index == -1){
     return -1;

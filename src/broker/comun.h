@@ -24,7 +24,7 @@ typedef struct {
 void printFifo(FIFO *fifo);
 void initFifo(FIFO *fifo, const char *name);
 char *push(FIFO *list, char *msg);
-char *pop(FIFO *list);
+int pop(FIFO *list, char **msg);
 //Dynamic Array
 void initArray(Array *array);
 char* insertArray(Array *array, FIFO fifo);
