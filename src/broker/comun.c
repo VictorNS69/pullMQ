@@ -64,9 +64,16 @@ char *push(FIFO *list, char *msg){
  */
 char *pop(FIFO *list){
     char *msg = list->start->msg;
+    //free(list->start);
     list->start = list->start->next != NULL ? list->start->next : NULL;
     list->size--;
     return msg;
+}
+
+/** Destroys the fifo
+ */
+void freeFifo(FIFO *fifo){
+    free(fifo);
 }
 ///////////////////////// FIFO /////////////////////////
 
@@ -149,7 +156,6 @@ int indexOf(Array *array, const char *name){
 	return -1;
 }
 ///////////////////////// DYNA /////////////////////////
-
 /*
 void main(){
     printf("comun.o\n");

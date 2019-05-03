@@ -56,6 +56,7 @@ int put(const char *cola, const void *mensaje, size_t tam){
 		return -1;
 	}
 	push(&a.list[index], (char*) mensaje);
+	/*
 	if (a.list->size == 2){
 		printf("En if\n");
 		printf("Posicion en array: %d\n", index);
@@ -65,7 +66,7 @@ int put(const char *cola, const void *mensaje, size_t tam){
 	printf("Posicion en array: %d\n", index);
 	printf("Nombre de cola: %s\n", a.list[index].name);
 	printf("Valor insertado: %s\n", a.list[index].start->msg);
-	
+	*/
 	return 0;
 }
 
@@ -92,7 +93,7 @@ int get(const char *cola, void **mensaje, size_t *tam, bool blocking){
 	printf("Nombre de cola: %s\n", a.list[index].name);
 	printf("Valor sacado: %d\n", *a.list[index].start->msg);
 	*/
-	char *sacado = pop(&a.list[index]);
-	printf("sacado %s\n", sacado);
+	*mensaje = pop(&a.list[index]);
+	//printf("sacado %s\n", (char *) *mensaje);
 	return 0;
 }
