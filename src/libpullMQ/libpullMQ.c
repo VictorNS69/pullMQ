@@ -55,8 +55,12 @@ int put(const char *cola, const void *mensaje, size_t tam){
 	if (index == -1){
 		return -1;
 	}
-	FIFO fifo = a.list[index];
-	push(&fifo, (char*) mensaje);
+	push(&a.list[index], (char*) mensaje);
+	/*
+	printf("Posicion en array: %d\n", index);
+	printf("Nombre de cola: %s\n", a.list[index].name);
+	printf("Valor insertado: %s\n", a.list[index].start->msg);
+	*/
 	return 0;
 }
 
@@ -69,19 +73,21 @@ int put(const char *cola, const void *mensaje, size_t tam){
  */
 int get(const char *cola, void **mensaje, size_t *tam, bool blocking){
 	int index = indexOf(&a, cola);
-	printf("COLA: %s\n", cola);
-	printf("INDEX: %d,\n", index);
 	if (index == -1){
+		//printf("Pasando en if 1\n");
 		return -1;
 	}
-	FIFO fifo = a.list[index];
-	printf("fifo name: %s\n", fifo.name);
-	printf("fifo start: %s\n", fifo.start);
-	printf("fifo end: %s\n", fifo.end);
-	printf("LISTA: \n");
-	printFifo(&fifo);
-	int pope = pop(&fifo,  (char **) mensaje);
-	printf("Valor de pop: %d\n", pope);
-	a.list[index] = fifo;
-	return pope;
+	if (a.list[index].size == 0){
+		//printf("Pasando en if 2\n");
+		return -1;
+	}
+	/*
+	printf("Posicion en array: %d\n", index);
+	printf("Tam de la cola: %d\n", a.list[index].size);
+	printf("Nombre de cola: %s\n", a.list[index].name);
+	printf("Valor sacado: %d\n", *a.list[index].start->msg);
+	*/
+	char *sacado = pop(&a.list[index]);
+	//printf("sacado %s\n", sacado);
+	return 0;
 }

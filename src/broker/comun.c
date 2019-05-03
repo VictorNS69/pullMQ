@@ -42,46 +42,29 @@ void initFifo(FIFO *fifo, const char *name){
  */
 char *push(FIFO *list, char *msg){
     struct Node *node = malloc(sizeof(struct Node));
-    node->msg = msg;
-    if (list->end != NULL)
-        list->end->next = node;
-
-    list->end = node;
-    if (list->start == NULL)
+    node->msg = malloc(sizeof(char *));
+    strcpy(node->msg, msg);
+    if (list->start == NULL){
+        node->next = NULL;
         list->start = node;
-
+    }
+    else{
+        node->next = list->end;
+    }
+    list->end = node;
     list->size++;
-    return list->end->msg;
+    return msg;
 }
 
 /** Remove the first element of the FIFO
  *  list: FIFO list
  *  returns int: 0 if success, -1 if not
  */
-int pop(FIFO *list, char **msg){
-    if (list->end == NULL){
-        return -1;
-    }
-    struct Node *start = list->start;
-    *msg = start->msg;
-
-    struct Node **second;
-    struct Node *current = list->end;
-
-    do {
-        if(current->next == start) {
-            *second = current;
-            return 0;
-        }
-    } while((current = current->next) != NULL);
-    second->next = NULL;
-    list->start = second;
-
-    free(start);
-    /*char *msg = list->start->msg;
+char *pop(FIFO *list){
+    char *msg = list->start->msg;
     list->start = list->start->next != NULL ? list->start->next : NULL;
     list->size--;
-    return msg;*/
+    return msg;
 }
 ///////////////////////// FIFO /////////////////////////
 
@@ -126,7 +109,7 @@ int deleteArray(Array *array, FIFO fifo){
   if (index == -1){
     return -1;
   }
-  FIFO newFifo = array->list[index];
+  //FIFO newFifo = array->list[index];
   array->size--;
   FIFO *temp = malloc(array->size * sizeof(*array->list));
   memmove(
@@ -147,7 +130,7 @@ int deleteArray(Array *array, FIFO fifo){
  */
 void printArray(Array *array){
     for (int i = 0; i < array->size; i++)
-        printf("%s", array->list[i].name);
+        printf(" %s ", array->list[i].name);
     printf("\n");
 }
 
@@ -182,6 +165,7 @@ void main(){
     printFifo(&list);
     printf("-\tEliminado %s\n", pop(&list));
     printf("+\tInsertado %s\n", push(&list, "elem5"));
+    printf("-\tEliminado %s\n", pop(&list));
     printf("Lista: ");
     printFifo(&list);
     printf("////////// ARRAY //////////\n");
@@ -209,5 +193,4 @@ void main(){
     printf("Array: ");
     printArray(&array);
     printf("Valor en 1: %s\n", array.list[1].name);
-}
-*/
+}*/
