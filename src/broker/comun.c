@@ -47,11 +47,13 @@ char *push(FIFO *list, char *msg){
     if (list->start == NULL){
         node->next = NULL;
         list->start = node;
+        list->end = node;
     }
     else{
-        node->next = list->end;
+        node->next = NULL;
+        list->end->next = node;
+        list->end = node;
     }
-    list->end = node;
     list->size++;
     return msg;
 }
@@ -69,7 +71,6 @@ char *pop(FIFO *list){
 ///////////////////////// FIFO /////////////////////////
 
 ///////////////////////// DYNA /////////////////////////
-
 /** Initializes the array
  *  array: the array of Strings
  */
