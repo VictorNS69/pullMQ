@@ -20,9 +20,15 @@ typedef struct {
     int size;
 } Array;
 
+//FIFO 
 void printFifo(FIFO *fifo);
 void initFifo(FIFO *fifo, const char *name);
 char *push(FIFO *list, char *msg);
 char *pop(FIFO *list);
-
-
+//Dynamic Array
+void initArray(Array *array);
+char* insertArray(Array *array, FIFO fifo);
+void freeArray(Array *array);
+int deleteArray(Array *array, FIFO fifo);
+void printArray(Array *array);
+int indexOf(Array *array, const char *name);

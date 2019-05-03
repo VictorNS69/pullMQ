@@ -67,6 +67,7 @@ char *pop(FIFO *list){
 ///////////////////////// FIFO /////////////////////////
 
 ///////////////////////// DYNA /////////////////////////
+
 /** Initializes the array
  *  array: the array of Strings
  */
@@ -75,39 +76,20 @@ void initArray(Array *array) {
   array->size = 0;
 }
 
-/** Insert a new element to the end of the array
+/** Insert a new fifo to the end of the array
  *  array: the array
- *  element: the new element
- *  returns int: 0 if success, -1 if not
+ *  fifo: the new fifo
+ *  returns the name of the inserted fifo
  */
 char* insertArray(Array *array, FIFO fifo) {
     printf("INSERTAR\n");
     printf("Tamaño: %d\n", array->size);
-    for(int i = 0; i < array->size; i++){
-      printf("i %d\n", i);
-      //printf("nombre: %s\n", array[i].list->name);
-      /*if (array[i].list == NULL){
-        //printf("HUECO NULL. i=%d\n", i );
-        array[i].list->name = fifo.name;
-        array[i].list->start = fifo.start;
-        array[i].list->end = fifo.end;
-        return array[i].list->name;
-      }
-      else */
-      //printf("%s",array[i].list->name);
-      if(strcmp(array[i].list->name, fifo.name) == 0){
-        //printf("EXISTE i=%d\n", i );
-        return "EXSIST";
-      }
-    }
-    printf("NO HUECO NULL Y NO EXISTE\n");
     array->size++;
-    printf("PASO\n");
+    printf("tamaño nuevo %d\n", array->size);
     array->list = realloc(array->list, array->size * sizeof(*array->list));
-    array[array->size -1].list->name = fifo.name;
-    array[array->size -1].list->start = fifo.start;
-    array[array->size -1].list->end = fifo.end;
-    return array[array->size -1].list->name;
+    initFifo(&fifo, fifo.name);
+    array->list[array->size -1] = fifo;
+    return array->list[array->size -1].name;
 }
 
 /** Destroys an array
@@ -118,60 +100,57 @@ void freeArray(Array *array) {
   array->list = NULL;
 }
 
-/** Delete an element of the array
+/** Delete a fifo of the array
  *  array: array
- *  element: element to remove
+ *  fifo: fifo to remove
  *  returns int: 0 if success, -1 if not
  */
 int deleteArray(Array *array, FIFO fifo){
   printf("NOMBRE para borrar: %s\n", fifo.name);
-  //printArray(&array);
-  int i;
-  bool find = false;
-  Array newArray;
-  initArray(&newArray);
-  for (i = 0; i < array->size; i++){
-    printf("i %d\n", i);
-    if(strcmp(fifo.name,array[i].list->name) == 0){
-      printf("Encontrado elemento\n");
-      find = true;
-      continue;
-    }
-    FIFO newFifo = *array[i].list;
-    insertArray(&newArray, newFifo);
-    //printArray(&newArray);
-    printf("insertado\n");
-    /*
-    if(strcmp(fifo.name,array[i].list->name)== 0){
-      FIFO *temp = malloc(array->size * sizeof(*array->list));
-      memmove(
+  int index = indexOf(array, fifo.name);
+  if (index == -1){
+    return -1;
+  }
+  FIFO newFifo = array->list[index];
+  array->size--;
+  FIFO *temp = malloc(array->size * sizeof(*array->list));
+  memmove(
         temp,
         array->list,
-        (i + 1) * sizeof(*array->list));
-      memmove(
-        temp + i,
-        array->list + i + 1,
-        (array->size - i) * sizeof(*array->list));
-      free(array[i].list);
-      array->list = temp;
-      return 0;
-    }*/
-  }
-  array->list = newArray.list;
-  array->size = newArray.size;
-  return find ? 0: -1;
+        (index + 1) * sizeof(*array->list));
+  memmove(
+        temp + index,
+        array->list + index + 1,
+        (array->size - index) * sizeof(*array->list));
+  free(array->list);
+  array->list = temp;
+  return 0;
 }
 
 /** Prints the array
- *  list: array
+ *  array: array
  */
 void printArray(Array *array){
-    //printf("Tamaño: %d \n", array->size);
-    for (int i = 0; i < array->size; ++i)
-        printf("%s ", array[i].list->name);
+    for (int i = 0; i < array->size; i++)
+        printf("%s", array->list[i].name);
     printf("\n");
 }
+
+/** Retrieves the index of the fifo "name"
+ *  array: array
+ *  char: name
+ *  returns int: index if success, -1 if not
+ */
+int indexOf(Array *array, const char *name){
+	for(int i = 0; i < array->size; i++){	
+		if(strcmp(array->list[i].name, name) == 0){
+			return i;
+		}
+	}
+	return -1;
+}
 ///////////////////////// DYNA /////////////////////////
+
 /*
 void main(){
     printf("comun.o\n");
@@ -182,7 +161,6 @@ void main(){
     printf("+\tInsertado %s\n", push(&list, "elem2"));
     printf("Lista: ");
     printFifo(&list);
-    //printf("-\tEliminado %s\n", pop(&list));
     printf("+\tInsertado %s\n", push(&list, "elem3"));
     printf("+\tInsertado %s\n", push(&list, "elem4"));
     printf("Lista: ");
@@ -206,14 +184,15 @@ void main(){
     printf("Array: ");
     printArray(&array);
     printf("-\tEliminado %d\n", deleteArray(&array, elem2));
-    /*printf("Array: ");
+    printf("Array: ");
     printArray(&array);
     printf("+\tInsertado %s\n", insertArray(&array, elem2));
     printf("Array: ");
     printArray(&array);
-    //printf("-\tEliminado %d\n", deleteArray(&array, elem2)); // -1 porque ya ha sido borrado
-    //printf("Array: ");
-    //printArray(&array);
-    //printf("Valor en 1: %s\n", array.list[1]);
-    */
-//}
+    printf("-\tEliminado %d\n", deleteArray(&array, elem2)); 
+    printf("-\tEliminado %d\n", deleteArray(&array, elem2)); // -1 porque ya ha sido borrado
+    printf("Array: ");
+    printArray(&array);
+    printf("Valor en 1: %s\n", array.list[1].name);
+}
+*/
