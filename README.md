@@ -12,11 +12,6 @@ Como parte del desarrollo del proyecto, el alumno tendrá que enfrentarse al dis
 
 En cuanto a las tecnologías usadas en la práctica, se programará en el lenguaje C utilizando sockets de tipo stream y se supondrá un entorno de máquinas heterogéneas.
 
-Se van a distinguir tres fases en el desarrollo de la práctica:
-- Sistema en el que las operaciones de lectura de una cola son solo no bloqueantes. Con esta fase puede alcanzarse una nota de **6 puntos**.
-- Sistema que incorpora también operaciones de lectura bloqueantes, que otorga un máximo de **3 puntos adicionales**.
-- Una fase final que plantea analizar e implementar aspectos de tolerancia a fallos en el sistema, que puede proporcionar el **1 punto** restante. Nótese que en las dos fases previas no se tendrá en cuenta la posibilidad de que alguno de los procesos involucrados en una comunicación se caiga, siendo en esta fase cuando se afronta este tipo de problemas.
-
 Para más información consultar el [enunciado de la práctica](/doc/enunciado.md).
 
 ## Ejecución
