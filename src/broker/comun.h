@@ -39,6 +39,7 @@ typedef struct{
 
 struct Node{
     char *msg;
+    size_t size;
     struct Node *next;
 };
 
@@ -47,22 +48,12 @@ typedef struct{
     struct Node *start;
     struct Node *end;
     unsigned int size;
-} FIFO;
+    int *awaiting;
+    int n_awaiting;
+} FIFO; // Queue
 
 typedef struct {
     FIFO *list;
     int size;
-} Array;
+} Array; // Queues
 
-//FIFO 
-void printFifo(FIFO *fifo);
-void initFifo(FIFO *fifo, const char *name);
-char *push(FIFO *list, char *msg);
-char *pop(FIFO *list);
-//Dynamic Array
-void initArray(Array *array);
-char* insertArray(Array *array, FIFO fifo);
-void freeArray(Array *array);
-int deleteArray(Array *array, FIFO fifo);
-void printArray(Array *array);
-int indexOf(Array *array, const char *name);
