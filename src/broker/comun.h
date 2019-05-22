@@ -16,7 +16,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <stdbool.h>
-
 #include <netdb.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -45,15 +44,14 @@ struct Node{
 
 typedef struct{
     char *name;
-    struct Node *start;
-    struct Node *end;
-    unsigned int size;
+    struct Node *first; //start
+    struct Node *last; //end
     int *awaiting;
     int n_awaiting;
-} FIFO; // Queue
+} Queue; // FIFO
 
 typedef struct {
-    FIFO *list;
+    Queue *array; //FIFO *list
     int size;
-} Array; // Queues
+} Queues; // Array
 
