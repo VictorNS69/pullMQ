@@ -92,19 +92,7 @@ int create_server(int port);
 /****************  END SERVER FUNCTIONS ****************/
 
 /***********************  QUEUE  ***********************/
-int queue_create(Queue *q, char *name)
-{
-	// TODO check malloc
-	Queue *temp;
-	temp = (Queue *)malloc(sizeof(Queue));
-	temp->name = name;
-	temp->first = NULL;
-	temp->last = NULL;
-	temp->awaiting = malloc(0);
-	temp->n_awaiting = 0;
-	*q = *temp;
-	return 0;
-}
+
 
 int queue_destroy(Queue *q)
 {
@@ -270,9 +258,16 @@ int createMQ(char *name)
 
 	// Create queue
 	Queue queue;
-	if ((queue_create(&queue, name)) < 0)
-		return -1;
-
+	// TODO check malloc
+	Queue *temp;
+	temp = (Queue *)malloc(sizeof(Queue));
+	temp->name = name;
+	temp->first = NULL;
+	temp->last = NULL;
+	temp->awaiting = malloc(0);
+	temp->n_awaiting = 0;
+	queue = *temp;
+	
 	// Push the queue to array
 	queues.array[queues.size - 1] = queue;
 	return 0;
