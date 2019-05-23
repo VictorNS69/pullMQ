@@ -47,13 +47,6 @@ int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size);
 // -1
 int get_index(const char *name);
 
-// Creates a new queue and pushed to the array of queues
-int createMQ(char *name);
-
-// Destroy queue and removed from the array of queues.
-// If the queue doesn't exists return -1
-int destroyMQ(const char *name);
-
 // Push a new message to a queue and update the array of queues.
 // If the queue doesn't exists return -1
 int put(const char *name, void *msg, size_t size);
@@ -92,7 +85,6 @@ int create_server(int port);
 /****************  END SERVER FUNCTIONS ****************/
 
 /***********************  QUEUE  ***********************/
-
 
 int queue_destroy(Queue *q)
 {
@@ -244,68 +236,6 @@ int get_index(const char *name)
 	return -1;
 }
 
-int createMQ(char *name)
-{
-	// Checks that there is no queue with that name
-	if (get_index(name) >= 0)
-		return -1;
-
-	// Allocate memory
-	queues.size++;
-	queues.array = (Queue *)realloc(queues.array, queues.size * sizeof(*queues.array));
-	if (queues.array == NULL)
-		return -1;
-
-	// Create queue
-	Queue queue;
-	// TODO check malloc
-	Queue *temp;
-	temp = (Queue *)malloc(sizeof(Queue));
-	temp->name = name;
-	temp->first = NULL;
-	temp->last = NULL;
-	temp->awaiting = malloc(0);
-	temp->n_awaiting = 0;
-	queue = *temp;
-	
-	// Push the queue to array
-	queues.array[queues.size - 1] = queue;
-	return 0;
-}
-
-int destroyMQ(const char *name)
-{
-	Queue q;
-	int index;
-
-	// Checks that the queue exists
-	if ((index = get_index(name)) < 0)
-		return -1;
-
-	q = queues.array[index];
-	free(queues.array[index].name);
-	queue_destroy(&q);
-
-	queues.size--;
-
-	// Allocate an array with a size 1 less than the current one
-	Queue *temp = malloc(queues.size * sizeof(Queue));
-
-	// copy everything BEFORE the index
-	memcpy(temp, queues.array, index * sizeof(Queue));
-
-	if (index != queues.size)
-		// copy everything AFTER the index
-		memcpy(
-			temp + index,
-			queues.array + index + 1,
-			(queues.size - index) * sizeof(Queue));
-
-	free(queues.array);
-	queues.array = temp;
-	return 0;
-}
-
 int put(const char *name, void *msg, size_t size)
 {
 	Queue q;
@@ -446,14 +376,69 @@ int process_request(const unsigned int client_fd)
 
 	void *msg;
 	size_t msg_len = 0;
-	int status;
+	int status = 0;
+	Queue q;
+	int index;
 	switch (request.operation)
 	{
 	case CREATE:
-		status = createMQ(request.queue_name);
+		//status = createMQ(request.queue_name);
+		// Checks that there is no queue with that name
+		if (get_index(request.queue_name) >= 0)
+			status = -1;
+
+		// Allocate memory
+		queues.size++;
+		queues.array = (Queue *)realloc(queues.array, queues.size * sizeof(*queues.array));
+		if (queues.array == NULL){
+			status = -1;
+		}
+
+		// Create queue
+		Queue queue;
+		// TODO check malloc
+		Queue *temp;
+		temp = (Queue *)malloc(sizeof(Queue));
+		temp->name = request.queue_name;
+		temp->first = NULL;
+		temp->last = NULL;
+		temp->awaiting = malloc(0);
+		temp->n_awaiting = 0;
+		queue = *temp;
+
+		// Push the queue to array
+		queues.array[queues.size - 1] = queue;
 		break;
 	case DESTROY:
-		status = destroyMQ(request.queue_name);
+		//status = destroyMQ(request.queue_name);
+		
+
+		// Checks that the queue exists
+		if ((index = get_index(request.queue_name)) < 0){
+			status = -1;
+		}
+
+		q = queues.array[index];
+		free(queues.array[index].name);
+		queue_destroy(&q);
+
+		queues.size--;
+
+		// Allocate an array with a size 1 less than the current one
+		temp = malloc(queues.size * sizeof(Queue));
+
+		// copy everything BEFORE the index
+		memcpy(temp, queues.array, index * sizeof(Queue));
+
+		if (index != queues.size)
+			// copy everything AFTER the index
+			memcpy(
+				temp + index,
+				queues.array + index + 1,
+				(queues.size - index) * sizeof(Queue));
+
+		free(queues.array);
+		queues.array = temp;
 		break;
 	case PUT:
 		status = put(request.queue_name, request.msg, request.msg_len);
@@ -513,9 +498,9 @@ int create_server(int port)
 		socklen_t addrlen = sizeof(client_addr);
 
 		client_fd = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
-		
+
 		int status = process_request(client_fd);
-		
+
 		if (status != 1)
 			close(client_fd);
 	}
