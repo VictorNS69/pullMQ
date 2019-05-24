@@ -46,19 +46,6 @@ int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size);
 // Returns the index of a queue in the array. If it doesn't exists returns
 // -1
 int get_index(const char *name);
-
-// Push a new message to a queue and update the array of queues.
-// If the queue doesn't exists return -1
-int put(const char *name, void *msg, size_t size);
-
-// Get a new message from a queue, remove the message from the queue
-// and update the array of queues.
-// If the queue doesn't exists return -1
-// If blocking is set to true, the client socket will be left open
-// until a put request is made to the queue. In that case the broker
-// will send the data to the client who made the get blocking
-// request
-int get(const char *name, void **msg, size_t *size, bool blocking, int client_fd);
 /****************  END ARRAY OF QUEUES  ****************/
 
 /******************  SERVER FUNCTIONS ******************/
@@ -236,41 +223,6 @@ int get_index(const char *name)
 	return -1;
 }
 
-int put(const char *name, void *msg, size_t size)
-{
-	Queue q;
-	int index;
-
-	// Checks that the queue exists
-	if ((index = get_index(name)) < 0)
-		return -1;
-
-	q = queues.array[index];
-
-	queue_push(&q, msg, size);
-
-	queues.array[index] = q;
-
-	return 0;
-}
-
-int get(const char *queue_name, void **msg, size_t *size, bool blocking, int client_fd)
-{
-	Queue q;
-	int index;
-
-	// Checks that the queue exists
-	if ((index = get_index(queue_name)) < 0)
-		return -1;
-
-	q = queues.array[index];
-	int status;
-	if ((status = queue_pop(&q, msg, size, blocking, client_fd)) < 0)
-		return -1;
-
-	queues.array[index] = q;
-	return status;
-}
 /****************  END ARRAY OF QUEUES  ****************/
 
 /******************  SERVER FUNCTIONS ******************/
@@ -390,7 +342,8 @@ int process_request(const unsigned int client_fd)
 		// Allocate memory
 		queues.size++;
 		queues.array = (Queue *)realloc(queues.array, queues.size * sizeof(*queues.array));
-		if (queues.array == NULL){
+		if (queues.array == NULL)
+		{
 			status = -1;
 		}
 
@@ -411,10 +364,10 @@ int process_request(const unsigned int client_fd)
 		break;
 	case DESTROY:
 		//status = destroyMQ(request.queue_name);
-		
 
 		// Checks that the queue exists
-		if ((index = get_index(request.queue_name)) < 0){
+		if ((index = get_index(request.queue_name)) < 0)
+		{
 			status = -1;
 		}
 
@@ -441,10 +394,33 @@ int process_request(const unsigned int client_fd)
 		queues.array = temp;
 		break;
 	case PUT:
-		status = put(request.queue_name, request.msg, request.msg_len);
+		//status = put(request.queue_name, request.msg, request.msg_len);
+		// Checks that the queue exists
+		if ((index = get_index(request.queue_name)) < 0)
+			status = -1;
+
+		q = queues.array[index];
+
+		queue_push(&q, request.msg, request.msg_len);
+
+		queues.array[index] = q;
+
 		break;
 	case GET:
-		status = get(request.queue_name, &msg, &msg_len, request.blocking, client_fd);
+		//status = get(request.queue_name, &msg, &msg_len, request.blocking, client_fd);
+		//int get(const char *queue_name, void **msg, size_t *size, bool blocking, int client_fd)
+		// Checks that the queue exists
+		if ((index = get_index(request.queue_name)) < 0)
+			status = -1;
+
+		q = queues.array[index];
+		int status2;
+		if ((status2 = queue_pop(&q, &msg, &msg_len, request.blocking, client_fd)) < 0)
+			status = -1;
+
+		queues.array[index] = q;
+		status = status2;
+
 		break;
 	}
 	if (status == 1)
