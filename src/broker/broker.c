@@ -26,10 +26,6 @@ int queue_push(Queue *q, void *msg, size_t size);
 // free the node
 int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd);
 
-// Looks for a node with next attribute equals to second argument
-// and set it in the memory position given by the third argument
-int queue_search_node(Queue *q, struct Node *node, struct Node **result);
-
 // It will send data to awaiting sockets (if they don't went down)
 // Remove the first element of the array of waiting
 int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size);
@@ -131,7 +127,20 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
 	*size = first->size;
 
 	struct Node *second;
-	if (queue_search_node(q, first, &second) < 0)
+	///+
+	int find = -1;
+	struct Node *current = q->last;
+	do
+	{
+		if (current->next == first)
+		{
+			second = current;
+			find = 0;
+			break;
+		}
+	} while ((current = current->next) != NULL);
+	//if (queue_search_node(q, first, &second) < 0)
+	if (find < 0)
 	{
 		q->last = NULL;
 		q->first = NULL;
@@ -184,19 +193,6 @@ int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size)
 	return 0;
 }
 
-int queue_search_node(Queue *q, struct Node *node, struct Node **result)
-{
-	struct Node *current = q->last;
-	do
-	{
-		if (current->next == node)
-		{
-			*result = current;
-			return 0;
-		}
-	} while ((current = current->next) != NULL);
-	return -1;
-}
 /*********************  END QUEUE  *********************/
 
 /******************  ARRAY OF QUEUES  ******************/
