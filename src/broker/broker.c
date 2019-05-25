@@ -30,13 +30,6 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd);
 // and set it in the memory position given by the third argument
 int queue_search_node(Queue *q, struct Node *node, struct Node **result);
 
-// Push a client socket to awaiting array
-int awaiting_arr_push(Queue *q, int client_socket);
-
-// Get the first client socket from awaiting array
-// If it return -10, the array is empty
-int awaiting_arr_pop(Queue *q);
-
 // It will send data to awaiting sockets (if they don't went down)
 // Remove the first element of the array of waiting
 int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size);
@@ -120,7 +113,10 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
 	{
 		if (blocking)
 		{
-			awaiting_arr_push(q, client_fd);
+			//awaiting_arr_push(q, client_fd);
+			q->n_awaiting++;
+			q->awaiting = (int *)realloc(q->awaiting, q->n_awaiting * sizeof(int));
+			q->awaiting[q->n_awaiting - 1] = client_fd;
 			return 1;
 		}
 		else
@@ -148,36 +144,29 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
 	return 0;
 }
 
-int awaiting_arr_push(Queue *q, int client_socket)
-{
-	q->n_awaiting++;
-	q->awaiting = (int *)realloc(q->awaiting, q->n_awaiting * sizeof(int));
-	q->awaiting[q->n_awaiting - 1] = client_socket;
-	return 0;
-}
-
-int awaiting_arr_pop(Queue *q)
-{
-	if (q->n_awaiting <= 0)
-		return -1;
-
-	int client_fd = q->awaiting[0];
-	q->n_awaiting--;
-	int *temp = malloc(q->n_awaiting * sizeof(int));
-	memcpy(
-		temp,
-		q->awaiting + 1,
-		q->n_awaiting * sizeof(int));
-
-	free(q->awaiting);
-	q->awaiting = temp;
-	return client_fd;
-}
-
 int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size)
 {
 	int client_fd;
-	if ((client_fd = awaiting_arr_pop(q)) < 0)
+	int awai_pop = 0;
+	///
+	if (q->n_awaiting <= 0)
+		awai_pop = -1;
+	else
+	{
+		int client_fd = q->awaiting[0];
+		q->n_awaiting--;
+		int *temp = malloc(q->n_awaiting * sizeof(int));
+		memcpy(
+			temp,
+			q->awaiting + 1,
+			q->n_awaiting * sizeof(int));
+
+		free(q->awaiting);
+		q->awaiting = temp;
+		awai_pop = client_fd;
+	}
+	///
+	if ((client_fd = awai_pop) < 0)
 	{
 		return client_fd;
 	}
