@@ -16,9 +16,6 @@ Queues queues;
 // name
 int queue_create(Queue *q, char *name);
 
-// Removes a queue: remove all the nodes and free awaiting array
-int queue_destroy(Queue *q);
-
 // Creates a new node and append it to the queue
 int queue_push(Queue *q, void *msg, size_t size);
 
@@ -61,26 +58,6 @@ int create_server(int port);
 /****************  END SERVER FUNCTIONS ****************/
 
 /***********************  QUEUE  ***********************/
-
-int queue_destroy(Queue *q)
-{
-	struct Node *head = q->first;
-
-	for (int i = 0; i < q->n_awaiting; i++)
-	{
-		int err = 100;
-		send_response(q->awaiting[i], &err, sizeof(int));
-	}
-	free(q->awaiting);
-
-	while (head != NULL)
-	{
-		free(head->msg);
-		free(head);
-		head = head->next;
-	}
-	return 0;
-}
 
 int queue_push(Queue *q, void *msg, size_t size)
 {
@@ -358,8 +335,24 @@ int process_request(const unsigned int client_fd)
 
 		q = queues.array[index];
 		free(queues.array[index].name);
-		queue_destroy(&q);
+		//queue_destroy(&q);
+		//
+		struct Node *head = q.first;
 
+		for (int i = 0; i < q.n_awaiting; i++)
+		{
+			int err = 100;
+			send_response(q.awaiting[i], &err, sizeof(int));
+		}
+		free(q.awaiting);
+
+		while (head != NULL)
+		{
+			free(head->msg);
+			free(head);
+			head = head->next;
+		}
+		//
 		queues.size--;
 
 		// Allocate an array with a size 1 less than the current one
