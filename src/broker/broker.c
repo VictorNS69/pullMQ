@@ -51,9 +51,6 @@ int serialize(int operation, int status, void *msg, size_t msg_len, char **seria
 // by client (CREATE, DESTROY, PUT, GET) and send back a response
 int process_request(const unsigned int client_fd);
 
-// It will create a server socket listening to port number
-// given in the argument. For every request it will call to
-// process_request
 int create_server(int port);
 /****************  END SERVER FUNCTIONS ****************/
 
@@ -415,8 +412,22 @@ int process_request(const unsigned int client_fd)
 	return send_response(client_fd, serialized, serialized_len);
 }
 
-int create_server(int port)
+/****************  END SERVER FUNCTIONS ****************/
+
+int main(int argc, char *argv[])
 {
+
+	if (argc != 2)
+	{
+		fprintf(stderr, "Uso: %s puerto\n", argv[0]);
+		return 1;
+	}
+
+	queues.array = (Queue *)malloc(0);
+	queues.size = 0;
+
+	//create_server(atoi(argv[1]));
+	int port = atoi(argv[1]);
 	char *host = getenv("BROKER_HOST");
 
 	int sockfd;
@@ -459,22 +470,6 @@ int create_server(int port)
 			close(client_fd);
 	}
 	close(sockfd);
-}
-/****************  END SERVER FUNCTIONS ****************/
-
-int main(int argc, char *argv[])
-{
-
-	if (argc != 2)
-	{
-		fprintf(stderr, "Uso: %s puerto\n", argv[0]);
-		return 1;
-	}
-
-	queues.array = (Queue *)malloc(0);
-	queues.size = 0;
-
-	create_server(atoi(argv[1]));
 
 	return 0;
 }
