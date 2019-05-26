@@ -23,9 +23,6 @@ int queue_push(Queue *q, void *msg, size_t size);
 // free the node
 int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd);
 
-// It will send data to awaiting sockets (if they don't went down)
-// Remove the first element of the array of waiting
-int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size);
 /*********************  END QUEUE  *********************/
 
 /******************  ARRAY OF QUEUES  ******************/
@@ -66,7 +63,44 @@ int queue_push(Queue *q, void *msg, size_t size)
 
 	if (q->first == NULL)
 	{
-		if (send_data_to_awaiting_socket(q, msg, size) >= 0)
+		int statusSD = 0;
+		///
+		int client_fd;
+		int awai_pop = 0;
+		if (q->n_awaiting <= 0)
+			awai_pop = -1;
+		else
+		{
+			int client_fd = q->awaiting[0];
+			q->n_awaiting--;
+			int *temp = malloc(q->n_awaiting * sizeof(int));
+			memcpy(
+				temp,
+				q->awaiting + 1,
+				q->n_awaiting * sizeof(int));
+
+			free(q->awaiting);
+			q->awaiting = temp;
+			awai_pop = client_fd;
+		}
+		if ((client_fd = awai_pop) < 0)
+		{
+			statusSD =  client_fd;
+		}
+		char *serialized;
+		size_t serialized_len;
+		if (serialize(GET, 0, msg, size, &serialized, &serialized_len) < 0 && statusSD == 0)
+		{
+			statusSD = -1;
+		}
+		if (send_response(client_fd, serialized, serialized_len) && statusSD == 0)
+		{
+			queue_push(q, msg, size);
+			statusSD = -1;
+		}
+		///
+		//if (send_data_to_awaiting_socket(q, msg, size) >= 0)
+		if (statusSD >= 0)
 			return 0;
 		node->next = NULL;
 		q->first = node;
@@ -124,46 +158,6 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
 	second->next = NULL;
 	q->first = second;
 
-	return 0;
-}
-
-int send_data_to_awaiting_socket(Queue *q, void *msg, size_t size)
-{
-	int client_fd;
-	int awai_pop = 0;
-	///
-	if (q->n_awaiting <= 0)
-		awai_pop = -1;
-	else
-	{
-		int client_fd = q->awaiting[0];
-		q->n_awaiting--;
-		int *temp = malloc(q->n_awaiting * sizeof(int));
-		memcpy(
-			temp,
-			q->awaiting + 1,
-			q->n_awaiting * sizeof(int));
-
-		free(q->awaiting);
-		q->awaiting = temp;
-		awai_pop = client_fd;
-	}
-	///
-	if ((client_fd = awai_pop) < 0)
-	{
-		return client_fd;
-	}
-	char *serialized;
-	size_t serialized_len;
-	if (serialize(GET, 0, msg, size, &serialized, &serialized_len) < 0)
-	{
-		return -1;
-	}
-	if (send_response(client_fd, serialized, serialized_len))
-	{
-		queue_push(q, msg, size);
-		return -1;
-	}
 	return 0;
 }
 
