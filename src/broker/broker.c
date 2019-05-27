@@ -1,59 +1,25 @@
 #include <stdio.h>
 #include "comun.h"
 
-// Client(libpullMQ) should send the following structure serialized.
-// Attributes that should have the request for every operation:
-// 		CREATE: operation, queue_name_len, queue_name
-// 		DESTROY: operation, queue_name_len, queue_name
-// 		PUT: operation, queue_name_len, queue_name, msg_len, msg
-// 		DESTROY: operation, queue_name_len, queue_name, blocking
+Array queues;
+int queue_create(FIFO *q, char *name);
 
-// Variable that contains all the queues.
-// It is initialize in main()
-Queues queues;
-/***********************  QUEUE  ***********************/
-// Create a new queue with everything set to empty or 0 except for the
-// name
-int queue_create(Queue *q, char *name);
+int queue_push(FIFO *q, void *msg, size_t size);
+int queue_pop(FIFO *q, void **msg, size_t *size, bool blocking, int client_fd);
 
-// Creates a new node and append it to the queue
-int queue_push(Queue *q, void *msg, size_t size);
-
-// Gets head node from the queue q, reads data, set msg and size and
-// free the node
-int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd);
-
-/*********************  END QUEUE  *********************/
-
-/******************  ARRAY OF QUEUES  ******************/
-// Returns the index of a queue in the array. If it doesn't exists returns
-// -1
 int get_index(const char *name);
-/****************  END ARRAY OF QUEUES  ****************/
 
-/******************  SERVER FUNCTIONS ******************/
-// Returns a response to client_fd. It will send two responses
-// The first one with the size. The second one with the data
 int send_response(int client_fd, void *data, size_t size);
 
-// Given a array of chars it will convert the data to a Request
-// struct. At least the request struct will have operation,
-// name and name_len. See Request struct for further info
 Request deserialize(char *serialized);
 
 int serialize(int operation, int status, void *msg, size_t msg_len, char **serialized, size_t *serialized_len);
 
-// For every connection from a client it will receive data,
-// convert it to a struct, made the operation requested
-// by client (CREATE, DESTROY, PUT, GET) and send back a response
 int process_request(const unsigned int client_fd);
 
 int create_server(int port);
-/****************  END SERVER FUNCTIONS ****************/
 
-/***********************  QUEUE  ***********************/
-
-int queue_push(Queue *q, void *msg, size_t size)
+int queue_push(FIFO *q, void *msg, size_t size)
 {
 	struct Node *node;
 	node = (struct Node *)malloc(sizeof(struct Node));
@@ -64,7 +30,6 @@ int queue_push(Queue *q, void *msg, size_t size)
 	if (q->first == NULL)
 	{
 		int statusSD = 0;
-		///
 		int client_fd;
 		int awai_pop = 0;
 		if (q->n_awaiting <= 0)
@@ -98,8 +63,6 @@ int queue_push(Queue *q, void *msg, size_t size)
 			queue_push(q, msg, size);
 			statusSD = -1;
 		}
-		///
-		//if (send_data_to_awaiting_socket(q, msg, size) >= 0)
 		if (statusSD >= 0)
 			return 0;
 		node->next = NULL;
@@ -111,13 +74,12 @@ int queue_push(Queue *q, void *msg, size_t size)
 	return 0;
 }
 
-int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
+int queue_pop(FIFO *q, void **msg, size_t *size, bool blocking, int client_fd)
 {
 	if (q->first == NULL)
 	{
 		if (blocking)
 		{
-			//awaiting_arr_push(q, client_fd);
 			q->n_awaiting++;
 			q->awaiting = (int *)realloc(q->awaiting, q->n_awaiting * sizeof(int));
 			q->awaiting[q->n_awaiting - 1] = client_fd;
@@ -135,7 +97,6 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
 	*size = first->size;
 
 	struct Node *second;
-	///+
 	int find = -1;
 	struct Node *current = q->last;
 	do
@@ -147,7 +108,6 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
 			break;
 		}
 	} while ((current = current->next) != NULL);
-	//if (queue_search_node(q, first, &second) < 0)
 	if (find < 0)
 	{
 		q->last = NULL;
@@ -161,9 +121,6 @@ int queue_pop(Queue *q, void **msg, size_t *size, bool blocking, int client_fd)
 	return 0;
 }
 
-/*********************  END QUEUE  *********************/
-
-/******************  ARRAY OF QUEUES  ******************/
 int get_index(const char *name)
 {
 	for (int i = 0; i < queues.size; i++)
@@ -176,9 +133,6 @@ int get_index(const char *name)
 	return -1;
 }
 
-/****************  END ARRAY OF QUEUES  ****************/
-
-/******************  SERVER FUNCTIONS ******************/
 int send_response(int client_fd, void *data, size_t size)
 {
 	uint32_t size_net = htonl(size);
@@ -201,7 +155,6 @@ int send_response(int client_fd, void *data, size_t size)
 
 Request deserialize(char *serialized)
 {
-	// https://stackoverflow.com/questions/15707933/how-to-serialize-a-struct-in-c
 
 	Request request;
 
@@ -282,29 +235,23 @@ int process_request(const unsigned int client_fd)
 	void *msg;
 	size_t msg_len = 0;
 	int status = 0;
-	Queue q;
+	FIFO q;
 	int index;
 	switch (request.operation)
 	{
 	case CREATE:
-		//status = createMQ(request.queue_name);
-		// Checks that there is no queue with that name
 		if (get_index(request.queue_name) >= 0)
 			status = -1;
 
-		// Allocate memory
 		queues.size++;
-		queues.array = (Queue *)realloc(queues.array, queues.size * sizeof(*queues.array));
+		queues.array = (FIFO *)realloc(queues.array, queues.size * sizeof(*queues.array));
 		if (queues.array == NULL)
 		{
 			status = -1;
 		}
-
-		// Create queue
-		Queue queue;
-		// TODO check malloc
-		Queue *temp;
-		temp = (Queue *)malloc(sizeof(Queue));
+		FIFO queue;
+		FIFO *temp;
+		temp = (FIFO *)malloc(sizeof(FIFO));
 		temp->name = request.queue_name;
 		temp->first = NULL;
 		temp->last = NULL;
@@ -312,13 +259,9 @@ int process_request(const unsigned int client_fd)
 		temp->n_awaiting = 0;
 		queue = *temp;
 
-		// Push the queue to array
 		queues.array[queues.size - 1] = queue;
 		break;
 	case DESTROY:
-		//status = destroyMQ(request.queue_name);
-
-		// Checks that the queue exists
 		if ((index = get_index(request.queue_name)) < 0)
 		{
 			status = -1;
@@ -326,8 +269,6 @@ int process_request(const unsigned int client_fd)
 
 		q = queues.array[index];
 		free(queues.array[index].name);
-		//queue_destroy(&q);
-		//
 		struct Node *head = q.first;
 
 		for (int i = 0; i < q.n_awaiting; i++)
@@ -343,28 +284,21 @@ int process_request(const unsigned int client_fd)
 			free(head);
 			head = head->next;
 		}
-		//
 		queues.size--;
 
-		// Allocate an array with a size 1 less than the current one
-		temp = malloc(queues.size * sizeof(Queue));
-
-		// copy everything BEFORE the index
-		memcpy(temp, queues.array, index * sizeof(Queue));
+		temp = malloc(queues.size * sizeof(FIFO));
+		memcpy(temp, queues.array, index * sizeof(FIFO));
 
 		if (index != queues.size)
-			// copy everything AFTER the index
 			memcpy(
 				temp + index,
 				queues.array + index + 1,
-				(queues.size - index) * sizeof(Queue));
+				(queues.size - index) * sizeof(FIFO));
 
 		free(queues.array);
 		queues.array = temp;
 		break;
 	case PUT:
-		//status = put(request.queue_name, request.msg, request.msg_len);
-		// Checks that the queue exists
 		if ((index = get_index(request.queue_name)) < 0)
 			status = -1;
 
@@ -376,9 +310,6 @@ int process_request(const unsigned int client_fd)
 
 		break;
 	case GET:
-		//status = get(request.queue_name, &msg, &msg_len, request.blocking, client_fd);
-		//int get(const char *queue_name, void **msg, size_t *size, bool blocking, int client_fd)
-		// Checks that the queue exists
 		if ((index = get_index(request.queue_name)) < 0)
 			status = -1;
 
@@ -406,8 +337,6 @@ int process_request(const unsigned int client_fd)
 	return send_response(client_fd, serialized, serialized_len);
 }
 
-/****************  END SERVER FUNCTIONS ****************/
-
 int main(int argc, char *argv[])
 {
 
@@ -417,10 +346,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	queues.array = (Queue *)malloc(0);
+	queues.array = (FIFO *)malloc(0);
 	queues.size = 0;
 
-	//create_server(atoi(argv[1]));
 	int port = atoi(argv[1]);
 	char *host = getenv("BROKER_HOST");
 

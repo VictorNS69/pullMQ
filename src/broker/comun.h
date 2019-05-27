@@ -29,8 +29,8 @@
 
 typedef struct{
 	int operation;
-	size_t queue_name_len;
 	char *queue_name;
+	size_t queue_name_len;
 	size_t msg_len;
 	void *msg;
 	bool blocking;
@@ -48,10 +48,9 @@ typedef struct{
     struct Node *last; //end
     int *awaiting;
     int n_awaiting;
-} Queue; // FIFO
+} FIFO; 
 
 typedef struct {
-    Queue *array; //FIFO *list
     int size;
-} Queues; // Array
-
+    FIFO *array; 
+} Array; 
