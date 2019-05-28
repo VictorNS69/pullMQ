@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include "comun.h"
 
-Array queues;
-
+Array array;
 
 int serialize(int operation, int status, void *msg, size_t msg_len, char **serialized, size_t *serialized_len)
 {
@@ -49,7 +48,7 @@ int send_response(int client_fd, void *data, size_t size)
 	return 0;
 }
 
-int queue_push(FIFO *q, void *msg, size_t size)
+int queue_push(FIFO *f, void *msg, size_t size)
 {
 	struct Node *node;
 	node = (struct Node *)malloc(sizeof(struct Node));
@@ -57,25 +56,25 @@ int queue_push(FIFO *q, void *msg, size_t size)
 	memcpy(node->msg, msg, size);
 	node->size = size;
 
-	if (q->first == NULL)
+	if (f->start == NULL)
 	{
 		int statusSD = 0;
 		int client_fd;
 		int awai_pop = 0;
-		if (q->n_awaiting <= 0)
+		if (f->n_awaiting <= 0)
 			awai_pop = -1;
 		else
 		{
-			int client_fd = q->awaiting[0];
-			q->n_awaiting--;
-			int *temp = malloc(q->n_awaiting * sizeof(int));
+			int client_fd = f->awaiting[0];
+			f->n_awaiting--;
+			int *temp = malloc(f->n_awaiting * sizeof(int));
 			memcpy(
 				temp,
-				q->awaiting + 1,
-				q->n_awaiting * sizeof(int));
+				f->awaiting + 1,
+				f->n_awaiting * sizeof(int));
 
-			free(q->awaiting);
-			q->awaiting = temp;
+			free(f->awaiting);
+			f->awaiting = temp;
 			awai_pop = client_fd;
 		}
 		if ((client_fd = awai_pop) < 0)
@@ -90,29 +89,29 @@ int queue_push(FIFO *q, void *msg, size_t size)
 		}
 		if (send_response(client_fd, serialized, serialized_len) && statusSD == 0)
 		{
-			queue_push(q, msg, size);
+			queue_push(f, msg, size);
 			statusSD = -1;
 		}
 		if (statusSD >= 0)
 			return 0;
 		node->next = NULL;
-		q->first = node;
+		f->start = node;
 	}
 	else
-		node->next = q->last;
-	q->last = node;
+		node->next = f->end;
+	f->end = node;
 	return 0;
 }
 
-int queue_pop(FIFO *q, void **msg, size_t *size, bool blocking, int client_fd)
+int queue_pop(FIFO *f, void **msg, size_t *size, bool blocking, int client_fd)
 {
-	if (q->first == NULL)
+	if (f->start == NULL)
 	{
 		if (blocking)
 		{
-			q->n_awaiting++;
-			q->awaiting = (int *)realloc(q->awaiting, q->n_awaiting * sizeof(int));
-			q->awaiting[q->n_awaiting - 1] = client_fd;
+			f->n_awaiting++;
+			f->awaiting = (int *)realloc(f->awaiting, f->n_awaiting * sizeof(int));
+			f->awaiting[f->n_awaiting - 1] = client_fd;
 			return 1;
 		}
 		else
@@ -121,17 +120,17 @@ int queue_pop(FIFO *q, void **msg, size_t *size, bool blocking, int client_fd)
 			return 2;
 		}
 	}
-	struct Node *first = q->first;
+	struct Node *start = f->start;
 
-	*msg = first->msg;
-	*size = first->size;
+	*msg = start->msg;
+	*size = start->size;
 
 	struct Node *second;
 	int find = -1;
-	struct Node *current = q->last;
+	struct Node *current = f->end;
 	do
 	{
-		if (current->next == first)
+		if (current->next == start)
 		{
 			second = current;
 			find = 0;
@@ -140,22 +139,22 @@ int queue_pop(FIFO *q, void **msg, size_t *size, bool blocking, int client_fd)
 	} while ((current = current->next) != NULL);
 	if (find < 0)
 	{
-		q->last = NULL;
-		q->first = NULL;
+		f->end = NULL;
+		f->start = NULL;
 		return 0;
 	}
 
 	second->next = NULL;
-	q->first = second;
+	f->start = second;
 
 	return 0;
 }
 
 int get_index(const char *name)
 {
-	for (int i = 0; i < queues.size; i++)
+	for (int i = 0; i < array.size; i++)
 	{
-		if (strcmp(queues.array[i].name, name) == 0)
+		if (strcmp(array.array[i].name, name) == 0)
 		{
 			return i;
 		}
@@ -220,7 +219,7 @@ int process_request(const unsigned int client_fd)
 	void *msg;
 	size_t msg_len = 0;
 	int status = 0;
-	FIFO q;
+	FIFO f;
 	int index;
 	switch (request.operation)
 	{
@@ -228,23 +227,23 @@ int process_request(const unsigned int client_fd)
 		if (get_index(request.queue_name) >= 0)
 			status = -1;
 
-		queues.size++;
-		queues.array = (FIFO *)realloc(queues.array, queues.size * sizeof(*queues.array));
-		if (queues.array == NULL)
+		array.size++;
+		array.array = (FIFO *)realloc(array.array, array.size * sizeof(*array.array));
+		if (array.array == NULL)
 		{
 			status = -1;
 		}
-		FIFO queue;
+		FIFO fifo;
 		FIFO *temp;
 		temp = (FIFO *)malloc(sizeof(FIFO));
 		temp->name = request.queue_name;
-		temp->first = NULL;
-		temp->last = NULL;
+		temp->start = NULL;
+		temp->end = NULL;
 		temp->awaiting = malloc(0);
 		temp->n_awaiting = 0;
-		queue = *temp;
+		fifo = *temp;
 
-		queues.array[queues.size - 1] = queue;
+		array.array[array.size - 1] = fifo;
 		break;
 	case DESTROY:
 		if ((index = get_index(request.queue_name)) < 0)
@@ -252,16 +251,16 @@ int process_request(const unsigned int client_fd)
 			status = -1;
 		}
 
-		q = queues.array[index];
-		free(queues.array[index].name);
-		struct Node *head = q.first;
+		f = array.array[index];
+		free(array.array[index].name);
+		struct Node *head = f.start;
 
-		for (int i = 0; i < q.n_awaiting; i++)
+		for (int i = 0; i < f.n_awaiting; i++)
 		{
 			int err = 100;
-			send_response(q.awaiting[i], &err, sizeof(int));
+			send_response(f.awaiting[i], &err, sizeof(int));
 		}
-		free(q.awaiting);
+		free(f.awaiting);
 
 		while (head != NULL)
 		{
@@ -269,41 +268,41 @@ int process_request(const unsigned int client_fd)
 			free(head);
 			head = head->next;
 		}
-		queues.size--;
+		array.size--;
 
-		temp = malloc(queues.size * sizeof(FIFO));
-		memcpy(temp, queues.array, index * sizeof(FIFO));
+		temp = malloc(array.size * sizeof(FIFO));
+		memcpy(temp, array.array, index * sizeof(FIFO));
 
-		if (index != queues.size)
+		if (index != array.size)
 			memcpy(
 				temp + index,
-				queues.array + index + 1,
-				(queues.size - index) * sizeof(FIFO));
+				array.array + index + 1,
+				(array.size - index) * sizeof(FIFO));
 
-		free(queues.array);
-		queues.array = temp;
+		free(array.array);
+		array.array = temp;
 		break;
 	case PUT:
 		if ((index = get_index(request.queue_name)) < 0)
 			status = -1;
 
-		q = queues.array[index];
+		f = array.array[index];
 
-		queue_push(&q, request.msg, request.msg_len);
+		queue_push(&f, request.msg, request.msg_len);
 
-		queues.array[index] = q;
+		array.array[index] = f;
 
 		break;
 	case GET:
 		if ((index = get_index(request.queue_name)) < 0)
 			status = -1;
 
-		q = queues.array[index];
+		f = array.array[index];
 		int status2;
-		if ((status2 = queue_pop(&q, &msg, &msg_len, request.blocking, client_fd)) < 0)
+		if ((status2 = queue_pop(&f, &msg, &msg_len, request.blocking, client_fd)) < 0)
 			status = -1;
 
-		queues.array[index] = q;
+		array.array[index] = f;
 		status = status2;
 
 		break;
@@ -331,8 +330,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	queues.array = (FIFO *)malloc(0);
-	queues.size = 0;
+	array.array = (FIFO *)malloc(0);
+	array.size = 0;
 
 	int port = atoi(argv[1]);
 	char *host = getenv("BROKER_HOST");

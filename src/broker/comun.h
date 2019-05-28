@@ -44,8 +44,8 @@ struct Node{
 
 typedef struct{
     char *name;
-    struct Node *first; //start
-    struct Node *last; //end
+    struct Node *start; 
+    struct Node *end; 
     int *awaiting;
     int n_awaiting;
 } FIFO; 
