@@ -2,22 +2,52 @@
 #include "comun.h"
 
 Array queues;
-int queue_create(FIFO *q, char *name);
 
-int queue_push(FIFO *q, void *msg, size_t size);
-int queue_pop(FIFO *q, void **msg, size_t *size, bool blocking, int client_fd);
 
-int get_index(const char *name);
+int serialize(int operation, int status, void *msg, size_t msg_len, char **serialized, size_t *serialized_len)
+{
+	size_t size = sizeof(status) + (operation == GET && status == 0 ? (msg_len + sizeof(msg_len)) : 0);
+	size_t offset = 0;
+	char *response_serialized = 0;
 
-int send_response(int client_fd, void *data, size_t size);
+	response_serialized = malloc(size);
+	int i = status < 0 ? status : operation;
+	memcpy(response_serialized + offset, &i, sizeof(i));
+	offset += sizeof(int);
 
-Request deserialize(char *serialized);
+	if (operation == GET && (status == 0 || status == 2))
+	{
+		memcpy(response_serialized + offset, &msg_len, sizeof(msg_len));
+		offset += sizeof(msg_len);
 
-int serialize(int operation, int status, void *msg, size_t msg_len, char **serialized, size_t *serialized_len);
+		memcpy(response_serialized + offset, msg, msg_len);
+		offset += msg_len;
+	}
 
-int process_request(const unsigned int client_fd);
+	*serialized_len = size;
+	*serialized = response_serialized;
+	return 0;
+}
 
-int create_server(int port);
+int send_response(int client_fd, void *data, size_t size)
+{
+	uint32_t size_net = htonl(size);
+	if (send(client_fd, &size_net, sizeof(size), MSG_NOSIGNAL) < 0)
+	{
+		return -1;
+	}
+	if (send(client_fd, data, size, MSG_NOSIGNAL) < 0)
+	{
+		return -1;
+	}
+
+	if (EPIPE == errno)
+	{
+		return -1;
+	}
+
+	return 0;
+}
 
 int queue_push(FIFO *q, void *msg, size_t size)
 {
@@ -133,26 +163,6 @@ int get_index(const char *name)
 	return -1;
 }
 
-int send_response(int client_fd, void *data, size_t size)
-{
-	uint32_t size_net = htonl(size);
-	if (send(client_fd, &size_net, sizeof(size), MSG_NOSIGNAL) < 0)
-	{
-		return -1;
-	}
-	if (send(client_fd, data, size, MSG_NOSIGNAL) < 0)
-	{
-		return -1;
-	}
-
-	if (EPIPE == errno)
-	{
-		return -1;
-	}
-
-	return 0;
-}
-
 Request deserialize(char *serialized)
 {
 
@@ -180,31 +190,6 @@ Request deserialize(char *serialized)
 	else if (request.operation == GET)
 		request.blocking = *((char *)serialized) == '1';
 	return request;
-}
-
-int serialize(int operation, int status, void *msg, size_t msg_len, char **serialized, size_t *serialized_len)
-{
-	size_t size = sizeof(status) + (operation == GET && status == 0 ? (msg_len + sizeof(msg_len)) : 0);
-	size_t offset = 0;
-	char *response_serialized = 0;
-
-	response_serialized = malloc(size);
-	int i = status < 0 ? status : operation;
-	memcpy(response_serialized + offset, &i, sizeof(i));
-	offset += sizeof(int);
-
-	if (operation == GET && (status == 0 || status == 2))
-	{
-		memcpy(response_serialized + offset, &msg_len, sizeof(msg_len));
-		offset += sizeof(msg_len);
-
-		memcpy(response_serialized + offset, msg, msg_len);
-		offset += msg_len;
-	}
-
-	*serialized_len = size;
-	*serialized = response_serialized;
-	return 0;
 }
 
 int process_request(const unsigned int client_fd)
