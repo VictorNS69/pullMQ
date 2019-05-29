@@ -48,7 +48,7 @@ int send_response(int client_fd, void *data, size_t size)
 	return 0;
 }
 
-int queue_push(FIFO *f, void *msg, size_t size)
+int fifo_push(FIFO *f, void *msg, size_t size)
 {
 	struct Node *node;
 	node = (struct Node *)malloc(sizeof(struct Node));
@@ -89,7 +89,7 @@ int queue_push(FIFO *f, void *msg, size_t size)
 		}
 		if (send_response(client_fd, serialized, serialized_len) && statusSD == 0)
 		{
-			queue_push(f, msg, size);
+			fifo_push(f, msg, size);
 			statusSD = -1;
 		}
 		if (statusSD >= 0)
@@ -103,7 +103,7 @@ int queue_push(FIFO *f, void *msg, size_t size)
 	return 0;
 }
 
-int queue_pop(FIFO *f, void **msg, size_t *size, bool blocking, int client_fd)
+int fifo_pop(FIFO *f, void **msg, size_t *size, bool blocking, int client_fd)
 {
 	if (f->start == NULL)
 	{
@@ -288,7 +288,7 @@ int process_request(const unsigned int client_fd)
 
 		f = array.array[index];
 
-		queue_push(&f, request.msg, request.msg_len);
+		fifo_push(&f, request.msg, request.msg_len);
 
 		array.array[index] = f;
 
@@ -299,7 +299,7 @@ int process_request(const unsigned int client_fd)
 
 		f = array.array[index];
 		int status2;
-		if ((status2 = queue_pop(&f, &msg, &msg_len, request.blocking, client_fd)) < 0)
+		if ((status2 = fifo_pop(&f, &msg, &msg_len, request.blocking, client_fd)) < 0)
 			status = -1;
 
 		array.array[index] = f;
