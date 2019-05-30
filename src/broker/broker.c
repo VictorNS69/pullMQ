@@ -3,6 +3,9 @@
 
 Array array;
 
+/** Serializes the request
+ *  retrieves: 0 if succes
+ */
 int serialize(int operation, int status, void *msg, size_t msg_len, char **serialized, size_t *serialized_len){
 	size_t size = sizeof(status) + (operation == GET && status == 0 ? (msg_len + sizeof(msg_len)) : 0);
 	size_t offset = 0;
@@ -22,6 +25,9 @@ int serialize(int operation, int status, void *msg, size_t msg_len, char **seria
 	return 0;
 }
 
+/** Sends the response
+ *  retrieves: 0 if success, -1 if failure
+ */
 int send_response(int client_fd, void *data, size_t size){
 	uint32_t size_net = htonl(size);
 	if (send(client_fd, &size_net, sizeof(size), MSG_NOSIGNAL) < 0){
@@ -36,6 +42,9 @@ int send_response(int client_fd, void *data, size_t size){
 	return 0;
 }
 
+/** Pushes a msg to the fifo
+ *  Retrieves: 0 if success
+ */
 int fifo_push(FIFO *f, void *msg, size_t size){
 	struct Node *node;
 	node = (struct Node *)malloc(sizeof(struct Node));
@@ -83,6 +92,10 @@ int fifo_push(FIFO *f, void *msg, size_t size){
 	return 0;
 }
 
+/** Extract the first item of the fifo
+ *  Retrieves: 1 if it is blocking, 2 if it is not
+ *  blocking
+ */
 int fifo_pop(FIFO *f, void **msg, size_t *size, bool blocking, int client_fd){
 	if (f->start == NULL){
 		if (blocking){
@@ -119,6 +132,9 @@ int fifo_pop(FIFO *f, void **msg, size_t *size, bool blocking, int client_fd){
 	return 0;
 }
 
+/** Retrieves the indes of the item.
+ *  -1 if it doesnt exist
+ */
 int get_index(const char *name){
 	for (int i = 0; i < array.size; i++){
 		if (strcmp(array.array[i].name, name) == 0)
@@ -127,6 +143,8 @@ int get_index(const char *name){
 	return -1;
 }
 
+/** Deserializes the request
+ */
 Request deserialize(char *serialized){
 	Request request;
 	request.operation = *((int *)serialized);
@@ -148,6 +166,9 @@ Request deserialize(char *serialized){
 	return request;
 }
 
+/** Process the request
+ *  Retrieves: 0 if succes, -1 if failure
+ */
 int process_request(const unsigned int client_fd){
 	size_t request_len = 0;
 	uint32_t request_len32 = 0;
